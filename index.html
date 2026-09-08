@@ -34,7 +34,7 @@
     /* 彈出視窗 Modal */
     .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
     .modal-content { background: #fff; max-width: 550px; margin: 40px auto; padding: 25px; border-radius: 8px; position: relative; }
-    .close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; border: none; background: none; color: #888; }
+    .close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: border; border: none; background: none; color: #888; }
     .close-btn:hover { color: #000; }
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
@@ -174,7 +174,7 @@
 
 <script>
   // ====== 請配置您的參數 ======
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz2IYOOTj7EN45_r8kI17aYC4Mm99klBctZZUBO94cpy0uxG_ut0jl2G6MK3fkeRRPTbw/exec"; // 請確認替換為 Apps Script 網址
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbz2IYOOTj7EN45_r8kI17aYC4Mm99klBctZZUBO94cpy0uxG_ut0jl2G6MK3fkeRRPTbw/exec";
   const REQUIRED_DOMAIN = "nehs.cyc.edu.tw";
   // ============================
 
@@ -189,7 +189,6 @@
   function formatTaiwanDate(raw) {
     if (!raw) return '';
     
-    // 若本來就是純字串 yyyy-MM-dd HH:mm (後端已處理好的情況)
     if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw) && !raw.includes('T')) {
       return raw.substring(0, 10);
     }
@@ -222,7 +221,7 @@
       dataTableInstance = $('#repairTable').DataTable({
         data: listData,
         destroy: true,
-        order: [[0, 'desc']], // 預設依時間降冪排列
+        order: [], // 關鍵修正：停用排序，直接依照 Google Sheet 原始由新到舊順序呈現！
         columns: [
           { 
             data: '報修時間', 
