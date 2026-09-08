@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>校園線上報修系統</title>
+  <title>嘉科實中校園線上報修系統</title>
   <!-- DataTables 與 jQuery -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
@@ -11,24 +11,36 @@
   <!-- Google Sign-In SDK -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f7f9fa; margin: 0; padding: 20px; color: #333; }
-    .container { max-width: 1050px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f7f9fa; margin: 0; padding: 20px; color: #333; }
+    .container { max-width: 1100px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     h1 { text-align: center; margin-bottom: 25px; font-weight: 600; }
-    .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-    .btn { padding: 8px 16px; border-radius: 4px; border: 1px solid #28a745; background: #fff; color: #28a745; font-weight: bold; cursor: pointer; text-decoration: none; }
-    .btn:hover { background: #28a745; color: #fff; }
-    .status-badge { color: #d9534f; font-weight: bold; }
-    table.dataTable thead th { background-color: #b2dfe5; color: #1f3a3e; border: none; }
+    .top-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+    .filter-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .filter-group input, .filter-group select { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; }
+    .btn-query { padding: 6px 15px; border-radius: 4px; border: 1px solid #007bff; background: #007bff; color: #fff; font-weight: bold; cursor: pointer; }
+    .btn-query:hover { background: #0056b3; }
+    .btn-login { padding: 8px 16px; border-radius: 4px; border: 1px solid #28a745; background: #fff; color: #28a745; font-weight: bold; cursor: pointer; }
+    .btn-login:hover { background: #28a745; color: #fff; }
+    
+    /* 狀態徽章樣式 */
+    .status-badge { font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 13px; display: inline-block; }
+    .status-申報中 { color: #d9534f; background: #fdf2f2; border: 1px solid #f5c6cb; }
+    .status-已聯繫廠商 { color: #d39e00; background: #fff9e6; border: 1px solid #ffeeba; }
+    .status-已完成 { color: #28a745; background: #eafaf1; border: 1px solid #c3e6cb; }
+    
+    table.dataTable thead th { background-color: #b2dfe5; color: #1f3a3e; border: none; text-align: left; }
+    table.dataTable tbody td { vertical-align: middle; }
+    
     /* 彈出視窗 Modal */
     .modal { display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); overflow-y: auto; }
     .modal-content { background: #fff; max-width: 550px; margin: 40px auto; padding: 25px; border-radius: 8px; position: relative; }
-    .close-btn { position: absolute; right: 15px; top: 15px; font-size: 20px; cursor: pointer; border: none; background: none; }
+    .close-btn { position: absolute; right: 15px; top: 15px; font-size: 24px; cursor: pointer; border: none; background: none; color: #888; }
+    .close-btn:hover { color: #000; }
     .form-group { margin-bottom: 15px; }
     .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-    .form-group small { color: #666; font-size: 12px; }
     .hidden { display: none; }
-    #userInfoBox { background: #e8f4fd; padding: 10px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+    #userInfoBox { background: #e8f4fd; padding: 12px 15px; border-radius: 4px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #b8daff; }
   </style>
 </head>
 <body>
@@ -37,12 +49,23 @@
   <h1>線上報修</h1>
 
   <div class="top-actions">
-    <div>
-      起訖日期：
+    <!-- 篩選列：起訖日期 + 維修狀態 -->
+    <div class="filter-group">
+      <span>起訖日期：</span>
       <input type="date" id="startDate"> ~ <input type="date" id="endDate">
-      <button id="filterBtn" style="padding: 6px 12px; cursor: pointer;">查詢</button>
+      
+      <span>狀態：</span>
+      <select id="statusFilter">
+        <option value="">全部狀態</option>
+        <option value="申報中">申報中</option>
+        <option value="已聯繫廠商">已聯繫廠商</option>
+        <option value="已完成">已完成</option>
+      </select>
+
+      <button id="filterBtn" class="btn-query">查詢</button>
     </div>
-    <button class="btn" onclick="openRepairModal()">我要報修登入</button>
+    
+    <button class="btn-login" onclick="openRepairModal()">報修登入</button>
   </div>
 
   <h3 style="text-align: center; color: #666; margin-top: 10px;">報修查詢列表</h3>
@@ -53,9 +76,9 @@
         <th>報修時間</th>
         <th>故障分類</th>
         <th>地點 (校區)</th>
-        <th>單位/班級</th>
+        <th>維修單位 / 班級</th>
         <th>聯絡人</th>
-        <th>聯絡電話</th>
+        <th>聯絡分機</th>
         <th>維修狀態</th>
       </tr>
     </thead>
@@ -67,13 +90,13 @@
 <div id="repairModal" class="modal">
   <div class="modal-content">
     <button class="close-btn" onclick="closeRepairModal()">&times;</button>
-    <h2 style="margin-top: 0;">提出設備維修申請</h2>
+    <h2 style="margin-top: 0; text-align: center;">提出設備維修申請</h2>
 
     <!-- Google 登入區塊 -->
     <div id="loginSection" style="text-align: center; padding: 30px 0;">
       <p style="margin-bottom: 15px; font-weight: bold; color: #444;">請先使用學校帳號 (@nehs.cyc.edu.tw) 登入</p>
       <div id="g_id_onload"
-           data-client_id="835801166938-oi5ctukgmepie2u3dsmk733cj8sjagci.apps.googleusercontent.com"
+           data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
            data-callback="handleCredentialResponse"
            data-auto_prompt="false"
            data-hd="nehs.cyc.edu.tw">
@@ -81,14 +104,14 @@
       <div class="g_id_signin" data-type="standard" data-size="large" style="display: inline-block;"></div>
     </div>
 
-    <!-- 報修填寫表單區塊 (登入後才顯示) -->
+    <!-- 報修填寫表單區塊 (登入後顯示) -->
     <form id="repairForm" class="hidden" onsubmit="submitRepair(event)">
       <div id="userInfoBox">
         <div>
           <span id="userDisplay" style="font-weight: bold;"></span><br>
           <span id="emailDisplay" style="font-size: 13px; color: #555;"></span>
         </div>
-        <button type="button" onclick="logout()" style="font-size: 12px; cursor: pointer;">切換帳號</button>
+        <button type="button" onclick="logout()" style="font-size: 12px; cursor: pointer; padding: 4px 8px;">切換帳號</button>
       </div>
 
       <div class="form-group">
@@ -102,17 +125,17 @@
 
       <div class="form-group">
         <label>單位 / 班級 <span style="color:red">*</span></label>
-        <input type="text" id="unit" required placeholder="例：總務處 / 高101">
+        <input type="text" id="unit" required placeholder="例：總務處  / 高101">
       </div>
 
       <div class="form-group">
         <label>地點 / 教室編號 <span style="color:red">*</span></label>
-        <input type="text" id="location" required placeholder="例：A棟 教務處  或  高101教室">
+        <input type="text" id="location" required placeholder="例：A棟總務處 / 高101">
       </div>
 
       <div class="form-group">
-        <label>聯絡電話 / 分機</label>
-        <input type="text" id="phone" placeholder="選填：方便維修人員現場聯絡">
+        <label>聯絡分機</label>
+        <input type="text" id="phone" placeholder="選填：校內分機">
       </div>
 
       <div class="form-group">
@@ -121,7 +144,7 @@
           <option value="" disabled selected>請選擇故障項目</option>
           <option value="電子白板">電子白板</option>
           <option value="冷氣">冷氣</option>
-          <option value="廣播系統">廣播系統</option>
+          <option value="喇叭">喇叭</option>
           <option value="桌椅">桌椅</option>
           <option value="門窗">門窗</option>
           <option value="網路">網路</option>
@@ -144,14 +167,14 @@
         <input type="file" id="photoFile" accept="image/*">
       </div>
 
-      <button type="submit" id="submitBtn" class="btn" style="width: 100%; padding: 10px; background: #28a745; color: #fff;">送出報修申請</button>
+      <button type="submit" id="submitBtn" class="btn-query" style="width: 100%; padding: 10px; background: #28a745; border: none; font-size: 15px;">送出報修申請</button>
     </form>
   </div>
 </div>
 
 <script>
   // ====== 請配置您的參數 ======
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyU-mlbRAO6pat0K-T87NB2QW8rlWr83VXxjjKs7cWbL_CLkY5AEzfjCnY37xTE6AEhwQ/exec"; // Apps Script 部署網址
+  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbyJHJ7NOYWs6jkatO5vqEQxuOFwHaypod0w5oNiKaKe3jgsdbfVD-oV8NZlFlJAUlOcbw/exec"; // 請確認替換為 Apps Script 網址
   const REQUIRED_DOMAIN = "nehs.cyc.edu.tw";
   // ============================
 
@@ -162,51 +185,102 @@
     initTable();
   });
 
-  // 1. 初始化 DataTables
-  function initTable() {
-    dataTableInstance = $('#repairTable').DataTable({
-      ajax: {
-        url: `${GAS_API_URL}`,
-        dataSrc: 'data'
-      },
-      columns: [
-        { data: '報修時間', defaultContent: '' },
-        { data: '故障分類', defaultContent: '' },
-        { 
-          data: null,
-          render: data => `${data['地點'] || ''} (${data['校區'] || ''})`
-        },
-        { data: '單位/班級', defaultContent: '' },
-        { data: '聯絡人', defaultContent: '' },
-        { data: '聯絡分機', defaultContent: '' },
-        { 
-          data: '維修狀態', 
-          render: data => `<span class="status-badge">${data || '申報中'}</span>` 
-        }
-      ],
-      language: {
-        search: "Search:",
-        lengthMenu: "_MENU_ entries per page",
-        info: "顯示 _START_ 到 _END_ 筆，共 _TOTAL_ 筆",
-        paginate: { next: "下一頁", previous: "上一頁" }
-      }
+  // 時間格式化工具：強制轉為台灣時區 (Asia/Taipei UTC+8) 的 yyyy-MM-dd
+  function formatTaiwanDate(raw) {
+    if (!raw) return '';
+    
+    // 若本來就是純字串 yyyy-MM-dd HH:mm (後端已處理好的情況)
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}/.test(raw) && !raw.includes('T')) {
+      return raw.substring(0, 10);
+    }
+
+    const d = new Date(raw);
+    if (isNaN(d.getTime())) return raw;
+
+    const formatter = new Intl.DateTimeFormat('zh-TW', {
+      timeZone: 'Asia/Taipei',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
     });
 
-    // 起訖日期搜尋
-    $('#filterBtn').click(function() {
+    const parts = formatter.formatToParts(d);
+    const year = parts.find(p => p.type === 'year').value;
+    const month = parts.find(p => p.type === 'month').value;
+    const day = parts.find(p => p.type === 'day').value;
+
+    return `${year}-${month}-${day}`;
+  }
+
+  // 1. 初始化 DataTables (使用 fetch 避免轉址錯誤)
+  async function initTable() {
+    try {
+      const response = await fetch(GAS_API_URL);
+      const json = await response.json();
+      const listData = json.data || [];
+
+      dataTableInstance = $('#repairTable').DataTable({
+        data: listData,
+        destroy: true,
+        order: [[0, 'desc']], // 預設依時間降冪排列
+        columns: [
+          { 
+            data: '報修時間', 
+            render: data => formatTaiwanDate(data) 
+          },
+          { data: '故障分類', defaultContent: '' },
+          { 
+            data: null,
+            render: data => `${data['地點'] || ''} (${data['校區'] || ''})`
+          },
+          { data: '單位/班級', defaultContent: '' },
+          { data: '聯絡人', defaultContent: '' },
+          { data: '聯絡分機', defaultContent: '' },
+          { 
+            data: '維修狀態', 
+            render: function(data) {
+              const status = data || '申報中';
+              let badgeClass = 'status-申報中';
+              if (status === '已聯繫廠商') badgeClass = 'status-已聯繫廠商';
+              if (status === '已完成') badgeClass = 'status-已完成';
+              return `<span class="status-badge ${badgeClass}">${status}</span>`;
+            }
+          }
+        ],
+        language: {
+          search: "Search:",
+          lengthMenu: "_MENU_ entries per page",
+          info: "顯示 _START_ 到 _END_ 筆，共 _TOTAL_ 筆",
+          paginate: { next: "下一頁", previous: "上一頁" },
+          emptyTable: "目前尚無報修資料"
+        }
+      });
+    } catch (error) {
+      console.error("載入資料失敗:", error);
+    }
+
+    // 複合篩選（起訖日期 + 維修狀態）
+    $('#filterBtn').off('click').on('click', function() {
       const start = $('#startDate').val();
       const end = $('#endDate').val();
+      const selectedStatus = $('#statusFilter').val();
+
       $.fn.dataTable.ext.search.push(function(settings, data) {
-        const dateStr = data[0].substring(0, 10);
-        if ((!start || dateStr >= start) && (!end || dateStr <= end)) return true;
-        return false;
+        const rowDate = data[0]; // 已格式化的 yyyy-MM-dd
+        const rowStatus = data[6]; // 維修狀態文字
+
+        const matchDate = (!start || rowDate >= start) && (!end || rowDate <= end);
+        const matchStatus = !selectedStatus || rowStatus.includes(selectedStatus);
+
+        return matchDate && matchStatus;
       });
+
       dataTableInstance.draw();
       $.fn.dataTable.ext.search.pop();
     });
   }
 
-  // 2. Google 登入回呼與網域驗證
+  // 2. Google 登入驗證
   function handleCredentialResponse(response) {
     const payload = parseJwt(response.credential);
     if (payload.hd === REQUIRED_DOMAIN || payload.email.endsWith(`@${REQUIRED_DOMAIN}`)) {
@@ -236,7 +310,6 @@
     document.getElementById("loginSection").classList.remove("hidden");
   }
 
-  // 3. 表單互動控制
   function openRepairModal() { document.getElementById("repairModal").style.display = "block"; }
   function closeRepairModal() { document.getElementById("repairModal").style.display = "none"; }
   function toggleOtherCategory(val) {
@@ -251,7 +324,7 @@
     }
   }
 
-  // 4. 送出表單 (含照片 Base64 轉換)
+  // 3. 表單送出
   async function submitRepair(e) {
     e.preventDefault();
     if (!currentUser) return alert("請先登入！");
@@ -304,7 +377,7 @@
         alert("報修成功！已寫入系統。");
         closeRepairModal();
         document.getElementById("repairForm").reset();
-        dataTableInstance.ajax.reload(); // 重載表格
+        initTable(); // 重新抓取並刷新列表
       } else {
         alert("提交失敗：" + result.message);
       }
